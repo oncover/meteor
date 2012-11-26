@@ -353,13 +353,7 @@ Spark._Patcher._copyAttributes = function(tgt, src) {
 
   // Determine whether tgt has focus; works in all browsers
   // as of FF3, Safari4
-  var target_focused = (tgt === document.activeElement);
-
-  // Is this a control with a user-mutated "value" property?
-  var has_user_value = (
-    (tgt.nodeName === "INPUT" &&
-     (tgt.type === "text")) ||
-      tgt.nodeName === "TEXTAREA");
+  var targetFocused = (tgt === document.activeElement);
 
   ///// Clear current attributes
 
@@ -405,8 +399,8 @@ Spark._Patcher._copyAttributes = function(tgt, src) {
     // sometimes have a group and sometimes not.
     if (isRadio && name === "name")
       continue;
-    // Never delete the "value" attribute.  It's more effective
-    // to simply overwrite it in the next phase.
+    // Never delete the "value" attribute: we have special three-way diff logic
+    // for it at the end.
     if (name === "value")
       continue;
     // Removing 'src' (e.g. in an iframe) can only be bad.
@@ -483,10 +477,19 @@ Spark._Patcher._copyAttributes = function(tgt, src) {
     }
   }
 
-  // Copy the control's value, only if tgt doesn't have focus.
-  if (has_user_value) {
-    if (! target_focused)
-      tgt.value = src.value;
+  // We preserve the old element's value unless both of the following is true:
+  //   - It's unfocused. If it's focused, the user might be editing it, and
+  //     we don't want to update what the user is currently editing.
+  //   - The newly rendered value is different from the old rendered value: ie,
+  //     something has actually changed on the server.
+  // Note that we expect src._sparkOriginalRenderedValue === src.value.
+  if (! targetFocused &&
+      src._sparkOriginalRenderedValue !== tgt._sparkOriginalRenderedValue) {
+    // Update the on-screen value to the newly rendered value.
+    tgt.value = src._sparkOriginalRenderedValue;
+    // ... and overwrite the saved rendered value too, so that the next time
+    // around we'll be comparing to this rendered value instead of the old one.
+    tgt._sparkOriginalRenderedValue = src._sparkOriginalRenderedValue;
   }
 
 };

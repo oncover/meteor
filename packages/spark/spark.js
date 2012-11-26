@@ -304,6 +304,11 @@ _.extend(Spark._Renderer.prototype, {
     });
     self.annotations = {};
 
+    // Save original versions of every 'value' property.
+    _.each(DomUtils.findAll(ret, '[value]'), function (nodeWithValue) {
+      nodeWithValue._sparkOriginalRenderedValue = nodeWithValue.value;
+    });
+
     return ret;
   }
 
