@@ -2638,10 +2638,7 @@ testAsyncMulti(
   })());
 
 
-Tinytest.add("spark - controls", function(test) {
-
-  // Radio buttons
-
+Tinytest.add("spark - controls - radio", function(test) {
   var R = ReactiveVar("");
   var change_buf = [];
   var div = OnscreenDiv(renderWithPreservation(function() {
@@ -2713,11 +2710,14 @@ Tinytest.add("spark - controls", function(test) {
   test.equal(div.text(), "Band: FM");
 
   div.kill();
+});
 
-  // Textarea
-
-  R = ReactiveVar({x:"test"});
-  div = OnscreenDiv(renderWithPreservation(function() {
+Tinytest.add("spark - controls - textarea", function(test) {
+  var R = ReactiveVar({x:"test"});
+  var R2 = ReactiveVar("");
+  var div = OnscreenDiv(renderWithPreservation(function() {
+    // Re-render when R2 is changed, even though it doesn't affect HTML.
+    R2.get();
     return '<textarea id="mytextarea">This is a '+
       R.get().x+'</textarea>';
   }));
@@ -2726,6 +2726,7 @@ Tinytest.add("spark - controls", function(test) {
   var textarea = div.node().firstChild;
   test.equal(textarea.nodeName, "TEXTAREA");
   test.equal(textarea.value, "This is a test");
+  test.equal(textarea._sparkOriginalRenderedValue, "This is a test");
 
   // value updates reactively
   R.set({x:"fridge"});
@@ -2746,13 +2747,18 @@ Tinytest.add("spark - controls", function(test) {
   Meteor.flush();
   test.equal(textarea.value, "This is a frog");
 
-  // Setting a value (similar to user typing) should
-  // not prevent value from being updated reactively.
+  // Setting a value (similar to user typing) should prevent value from being
+  // reverted if the div is re-rendered but the rendered TEXTAREA value (ie, R)
+  // does not change.
   textarea.value = "foobar";
+  R2.set("change");
+  Meteor.flush();
+  test.equal(textarea.value, "foobar");
+
+  // ... but if the actual rendered value changes, that should take effect.
   R.set({x:"photograph"});
   Meteor.flush();
   test.equal(textarea.value, "This is a photograph");
-
 
   div.kill();
 });

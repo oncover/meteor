@@ -304,9 +304,11 @@ _.extend(Spark._Renderer.prototype, {
     });
     self.annotations = {};
 
-    // Save original versions of every 'value' property.
-    _.each(DomUtils.findAll(ret, '[value]'), function (nodeWithValue) {
-      nodeWithValue._sparkOriginalRenderedValue = nodeWithValue.value;
+    // Save original versions of every 'value' property. Note that '[value]'
+    // doesn't match textareas even though they have a value property.
+    // (XXX am I using the right terminology???)
+    _.each(DomUtils.findAll(ret, '[value], textarea'), function (node) {
+      node._sparkOriginalRenderedValue = node.value;
     });
 
     return ret;
